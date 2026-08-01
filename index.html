@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wayfarer — Trip Itinerary Planner</title>
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --surface: #ffffff;
+    --surface-2: #fbfaf7;
+    --border: #e6e3db;
+    --text: #1e1c19;
+    --text-muted: #6b665c;
+    --text-faint: #928c7e;
+    --primary: #0f6b5c;
+    --primary-strong: #0b5347;
+    --primary-soft: #e4f0ec;
+    --accent: #c96a3a;
+    --accent-soft: #f7e6da;
+    --shadow: 0 1px 2px rgba(30,28,25,0.04), 0 8px 24px rgba(30,28,25,0.06);
+    --shadow-lg: 0 4px 10px rgba(30,28,25,0.06), 0 24px 48px rgba(30,28,25,0.12);
+    --radius-sm: 8px;
+    --radius: 14px;
+    --radius-lg: 20px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15140f;
+      --surface: #1d1c17;
+      --surface-2: #232019;
+      --border: #33301f;
+      --text: #f1eee6;
+      --text-muted: #b6ae9c;
+      --text-faint: #7d7767;
+      --primary: #4bbfa4;
+      --primary-strong: #6fd4bb;
+      --primary-soft: #1c3833;
+      --accent: #e88a58;
+      --accent-soft: #3a271b;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+      --shadow-lg: 0 4px 10px rgba(0,0,0,0.35), 0 24px 48px rgba(0,0,0,0.5);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+
+  header.top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+  }
+
+  .brand .mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .brand .mark svg { width: 18px; height: 18px; }
+
+  .tagline {
+    font-size: 13px;
+    color: var(--text-faint);
+    display: none;
+  }
+  @media (min-width: 560px) { .tagline { display: block; } }
+
+  /* ---------- Screens ---------- */
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeUp 0.35s ease both; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- Hero / form ---------- */
+  .hero {
+    text-align: left;
+    margin-bottom: 28px;
+  }
+  .hero h1 {
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0 0 10px;
+  }
+  .hero p {
+    color: var(--text-muted);
+    font-size: 16px;
+    margin: 0;
+    max-width: 56ch;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 28px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  @media (max-width: 620px) {
+    .form-grid { grid-template-columns: 1fr; }
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .field.full { grid-column: 1 / -1; }
+
+  .field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .field label svg { width: 14px; height: 14px; opacity: 0.7; }
+
+  .input-wrap {
+    position: relative;
+  }
+  .input-wrap .prefix {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-faint);
+    font-size: 15px;
+    pointer-events: none;
+  }
+
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 15px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+  }
+  input.has-prefix { padding-left: 28px; }
+
+  input[type="text"]:focus, input[type="number"]:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+
+  input::placeholder { color: var(--text-faint); }
+
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    opacity: 1;
+  }
+
+  .field .error {
+    font-size: 12.5px;
+    color: var(--accent);
+    min-height: 16px;
+    display: none;
+  }
+  .field.invalid input { border-color: var(--accent); }
+  .field.invalid .error { display: block; }
+
+  .actions-row {
+    margin-top: 22px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  button.primary {
+    appearance: none;
+    border: none;
+    background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 13px 24px;
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 6px 16px rgba(15,107,92,0.28);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  button.primary:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(15,107,92,0.32); }
+  button.primary:active { transform: translateY(0); }
+  button.primary svg { width: 16px; height: 16px; }
+
+  button.ghost {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  button.ghost:hover { background: var(--surface-2); }
+  button.ghost svg { width: 15px; height: 15px; }
+
+  /* ---------- Generation screen ---------- */
+  .gen-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 60px 20px 40px;
+  }
+
+  .gen-orb {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, var(--primary), var(--accent), var(--primary));
+    animation: spin 1.8s linear infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 26px;
+    padding: 3px;
+  }
+  .gen-orb::after {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--bg);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .gen-wrap h2 {
+    font-size: 22px;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .gen-wrap .sub {
+    color: var(--text-muted);
+    font-size: 14.5px;
+    margin: 0 0 32px;
+  }
+
+  .steps {
+    width: 100%;
+    max-width: 420px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    color: var(--text-faint);
+    font-size: 14.5px;
+    transition: color 0.2s, background 0.2s;
+  }
+  .step.active { color: var(--text); background: var(--surface); box-shadow: var(--shadow); }
+  .step.done { color: var(--text-muted); }
+
+  .step .dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .step.active .dot {
+    border-color: var(--primary);
+  }
+  .step.active .dot::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  .step.done .dot {
+    border-color: var(--primary);
+    background: var(--primary);
+  }
+  .step.done .dot svg { width: 12px; height: 12px; color: white; }
+
+  .progress-track {
+    width: 100%;
+    max-width: 420px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--border);
+    overflow: hidden;
+    margin-top: 26px;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border-radius: 999px;
+    transition: width 0.4s ease;
+  }
+
+  .error-badge {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 22px;
+  }
+  .error-badge svg { width: 28px; height: 28px; }
+  #screen-error .gen-wrap { padding-top: 70px; }
+  #screen-error button.ghost { margin-top: 26px; }
+
+  /* ---------- Results screen ---------- */
+  .results-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .results-header h1 {
+    font-size: 26px;
+    margin: 0 0 4px;
+    letter-spacing: -0.02em;
+  }
+  .results-header .meta {
+    color: var(--text-muted);
+    font-size: 14.5px;
+  }
+
+  .summary-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 26px;
+  }
+  @media (max-width: 700px) { .summary-strip { grid-template-columns: repeat(2, 1fr); } }
+
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 16px;
+    box-shadow: var(--shadow);
+  }
+  .stat .label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-faint);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .stat .label svg { width: 13px; height: 13px; }
+  .stat .value {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .stat .value.over { color: var(--accent); }
+  .stat .value.under { color: var(--primary); }
+
+  .stay-card {
+    background: var(--primary-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .stay-card .icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    color: var(--primary-strong);
+  }
+  .stay-card .icon svg { width: 20px; height: 20px; }
+  .stay-card .body h3 { margin: 0 0 2px; font-size: 15px; }
+  .stay-card .body p { margin: 0; font-size: 13.5px; color: var(--text-muted); }
+
+  .day {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+
+  .day-header {
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .day-header .day-title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .day-header .day-num {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary-strong);
+    background: var(--primary-soft);
+    padding: 3px 9px;
+    border-radius: 999px;
+    letter-spacing: 0.03em;
+  }
+  .day-header h3 { margin: 0; font-size: 15.5px; }
+  .day-header .day-cost {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .day-body {
+    padding: 20px 22px 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px 28px;
+  }
+  @media (max-width: 640px) { .day-body { grid-template-columns: 1fr; } }
+
+  .section-block h4 {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-block h4 svg { width: 13px; height: 13px; }
+
+  .item {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0 14px;
+    border-bottom: 1px dashed var(--border);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .item:last-child { border-bottom: none; }
+  .item .period {
+    flex-shrink: 0;
+    width: 64px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--primary-strong);
+    padding-top: 1px;
+  }
+  .item .meal-label {
+    flex-shrink: 0;
+    width: 64px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    padding-top: 1px;
+  }
+  .item .text { flex: 1; color: var(--text); }
+  .item .cost { flex-shrink: 0; font-size: 12.5px; color: var(--text-faint); font-weight: 600; }
+
+  .day-stay-line {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 4px 0 16px;
+  }
+  .day-stay-line svg { width: 14px; height: 14px; opacity: 0.6; flex-shrink: 0; }
+
+  .results-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .disclaimer {
+    margin-top: 34px;
+    font-size: 12.5px;
+    color: var(--text-faint);
+    text-align: center;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z"/></svg>
+      </span>
+      Wayfarer
+    </div>
+    <span class="tagline">Plan a trip in seconds</span>
+  </header>
+
+  <!-- ================= FORM SCREEN ================= -->
+  <section class="screen active" id="screen-form">
+    <div class="hero">
+      <h1>Where to next?</h1>
+      <p>Tell us the basics and we'll put together a day-by-day plan — accommodation, activities, and dining, all in one place, using real nearby places pulled live from OpenStreetMap. No sign-up or API key needed.</p>
+    </div>
+
+    <form class="card" id="trip-form" novalidate>
+      <div class="form-grid">
+        <div class="field full" id="field-destination">
+          <label for="destination">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            Destination
+          </label>
+          <input type="text" id="destination" name="destination" placeholder="e.g. Lisbon, Kyoto, Cape Town" autocomplete="off">
+          <span class="error">Enter a destination to continue.</span>
+        </div>
+
+        <div class="field" id="field-days">
+          <label for="days">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            Number of days
+          </label>
+          <input type="number" id="days" name="days" placeholder="5" min="1" max="21">
+          <span class="error">Enter between 1 and 21 days.</span>
+        </div>
+
+        <div class="field" id="field-travelers">
+          <label for="travelers">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Travelers
+          </label>
+          <input type="number" id="travelers" name="travelers" placeholder="2" min="1" max="12">
+          <span class="error">Enter between 1 and 12 travelers.</span>
+        </div>
+
+        <div class="field full" id="field-budget">
+          <label for="budget">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20"/><circle cx="7" cy="14" r="1"/></svg>
+            Total trip budget (USD)
+          </label>
+          <div class="input-wrap">
+            <span class="prefix">$</span>
+            <input type="number" class="has-prefix" id="budget" name="budget" placeholder="2500" min="50" step="50">
+          </div>
+          <span class="error">Enter a budget of at least $50.</span>
+        </div>
+      </div>
+
+      <p style="margin:18px 0 0;font-size:12.5px;color:var(--text-faint);line-height:1.5;">
+        Activities, dining, and stays are looked up live from
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:var(--primary-strong);">OpenStreetMap</a>
+        (via Nominatim &amp; Overpass) — free, public, and keyless. If it's ever unreachable, you can generate a simulated itinerary instead.
+      </p>
+
+      <div class="actions-row">
+        <button type="submit" class="primary">
+          Generate itinerary
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ================= GENERATION SCREEN ================= -->
+  <section class="screen" id="screen-generating">
+    <div class="gen-wrap">
+      <div class="gen-orb"></div>
+      <h2 id="gen-heading">Building your trip</h2>
+      <p class="sub" id="gen-sub">This usually takes a few seconds</p>
+
+      <div class="steps" id="steps-list" aria-live="polite"></div>
+
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+  </section>
+
+  <!-- ================= ERROR SCREEN ================= -->
+  <section class="screen" id="screen-error">
+    <div class="gen-wrap">
+      <div class="error-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg>
+      </div>
+      <h2>Couldn't reach OpenStreetMap</h2>
+      <p class="sub" id="error-message">Something went wrong while fetching real place data.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+        <button class="ghost" id="btn-error-back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to form
+        </button>
+        <button class="primary" id="btn-error-simulate">
+          Use simulated itinerary instead
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= RESULTS SCREEN ================= -->
+  <section class="screen" id="screen-results">
+    <div class="results-header">
+      <div>
+        <h1 id="res-title">Your trip</h1>
+        <div class="meta" id="res-meta"></div>
+      </div>
+      <button class="ghost" id="btn-start-over">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+        New search
+      </button>
+    </div>
+
+    <div class="summary-strip" id="summary-strip"></div>
+
+    <div class="stay-card" id="stay-card"></div>
+
+    <div id="days-container"></div>
+
+    <div class="results-footer">
+      <button class="ghost" id="btn-start-over-2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+        Plan another trip
+      </button>
+    </div>
+
+    <p class="disclaimer" id="disclaimer-text">Wayfarer generates a simulated itinerary for demonstration purposes — it is not connected to a live travel API and prices are illustrative estimates only. Always verify availability and pricing before booking.</p>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------------------------------------------------
+     Content pools for the simulated travel API
+  --------------------------------------------------------- */
+
+  const TIERS = {
+    budget:  { mult: 0.6,  nightRange: [32, 68],  label: "Budget-friendly" },
+    comfort: { mult: 1.0,  nightRange: [110, 205], label: "Comfort" },
+    luxury:  { mult: 1.85, nightRange: [280, 560], label: "Luxury" }
+  };
+
+  const STAY_NAMES = {
+    budget: ["{d} Backpackers Hostel", "The {d} Guesthouse", "Central {d} Hostel & Suites", "{d} Traveler's Inn", "Sunny {d} Budget Stay"],
+    comfort: ["Hotel {d} Plaza", "The {d} Boutique Hotel", "{d} Garden Inn", "Casa {d}", "The Nomad {d} Hotel"],
+    luxury: ["The {d} Grand Resort & Spa", "{d} Skyline Luxury Suites", "The Regency {d}", "{d} Royal Palace Hotel", "Amara {d} Estate"]
+  };
+
+  const STAY_DESC = {
+    budget: "A friendly, no-frills base with easy access to {d}'s main sights.",
+    comfort: "A well-located mid-range stay with comfortable rooms and warm service.",
+    luxury: "A five-star escape with premium amenities and standout views of {d}."
+  };
+
+  const MORNING = [
+    { text: "Explore the historic old town of {d} on a self-guided walking route", cost: 0 },
+    { text: "Visit the {d} Museum of Art & History", cost: 18 },
+    { text: "Join a guided walking tour of {d}'s must-see landmarks", cost: 25 },
+    { text: "Browse the stalls at {d}'s central morning market", cost: 10 },
+    { text: "Hike up to a scenic viewpoint overlooking {d}", cost: 0 },
+    { text: "Take a sunrise photography walk along the {d} waterfront", cost: 0 },
+    { text: "Visit one of {d}'s most iconic landmarks", cost: 8 },
+    { text: "Rent a bike and cycle through {d}'s main district", cost: 20 }
+  ];
+
+  const AFTERNOON = [
+    { text: "Take a cooking class featuring {d}'s traditional cuisine", cost: 58 },
+    { text: "Wander through the botanical gardens of {d}", cost: 12 },
+    { text: "Go on a boat tour around {d}'s coastline or waterways", cost: 45 },
+    { text: "Shop for local crafts in {d}'s artisan quarter", cost: 0 },
+    { text: "Visit the {d} science & technology museum", cost: 20 },
+    { text: "Take a half-day trip to the countryside just outside {d}", cost: 62 },
+    { text: "Unwind at a local spa in the heart of {d}", cost: 72 },
+    { text: "Join a street-art and mural walking tour in {d}", cost: 15 }
+  ];
+
+  const EVENING = [
+    { text: "Watch the sunset from a rooftop bar in {d}", cost: 20 },
+    { text: "Catch a live music performance at a local {d} venue", cost: 25 },
+    { text: "Take an evening food-tasting crawl through {d}", cost: 42 },
+    { text: "Stroll through {d}'s night market", cost: 10 },
+    { text: "Enjoy a traditional dance or theater show in {d}", cost: 35 },
+    { text: "Take a night photography walk through illuminated {d} streets", cost: 0 },
+    { text: "Relax with drinks at a scenic {d} lounge", cost: 24 },
+    { text: "Join a stargazing or night-sky tour near {d}", cost: 30 }
+  ];
+
+  const BREAKFAST = {
+    budget: [["Coffee and fresh pastries at a corner bakery in {d}", 6], ["Simple breakfast at a local {d} diner", 7], ["Fruit and pastries from {d}'s morning market", 5]],
+    comfort: [["A relaxed breakfast spread at a cozy {d} café", 14], ["Brunch at a popular {d} neighborhood spot", 16], ["Breakfast with a view at a {d} rooftop café", 15]],
+    luxury: [["Gourmet breakfast at your hotel's signature restaurant", 32], ["Champagne brunch overlooking {d}", 45], ["Chef's tasting breakfast at an award-winning {d} restaurant", 38]]
+  };
+  const LUNCH = {
+    budget: [["Street food tasting near {d}'s main square", 9], ["Quick noodle or rice bowl at a local {d} eatery", 8], ["Casual sandwich shop lunch in {d}", 10]],
+    comfort: [["Lunch at a highly-rated {d} bistro", 22], ["Farm-to-table lunch at a {d} garden restaurant", 26], ["Regional specialties at a family-run {d} restaurant", 20]],
+    luxury: [["Multi-course lunch at a {d} fine-dining restaurant", 55], ["Chef's tasting menu overlooking {d}", 68], ["Private lunch experience with a local {d} culinary expert", 75]]
+  };
+  const DINNER = {
+    budget: [["Dinner at a lively {d} night market stall", 12], ["Home-style cooking at a family-run {d} eatery", 14], ["Casual dinner at a popular {d} local favorite", 13]],
+    comfort: [["Dinner at a trendy {d} restaurant known for regional cuisine", 34], ["Wine-paired dinner at a {d} bistro", 40], ["Rooftop dinner with skyline views of {d}", 38]],
+    luxury: [["Tasting menu at one of {d}'s most acclaimed restaurants", 85], ["Private chef dinner experience in {d}", 120], ["Michelin-caliber dining in the heart of {d}", 140]]
+  };
+
+  const GEN_STEPS = [
+    "Looking up {d}...",
+    "Matching hotels to your budget...",
+    "Curating activities & dining...",
+    "Balancing your daily budget...",
+    "Finalizing your itinerary..."
+  ];
+
+  /* ---------------------------------------------------------
+     Live travel data: OpenStreetMap — Nominatim (geocoding) +
+     Overpass API (place search). Both are free, public, and
+     require no API key or account.
+     https://nominatim.org/release-docs/latest/api/Search/
+     https://wiki.openstreetmap.org/wiki/Overpass_API
+  --------------------------------------------------------- */
+
+  const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
+  const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+  const SEARCH_RADIUS_M = 9000;
+  const ACTIVITY_VERBS = ["Visit", "Explore", "Check out", "Wander through", "Stop by"];
+  const DINE_VERBS = ["Try", "Grab a bite at", "Head to", "Sample"];
+
+  const ACTIVITY_TOURISM = "attraction|museum|artwork|viewpoint|gallery|zoo|theme_park";
+  const DINING_AMENITY = "restaurant|cafe|fast_food|bar|pub";
+  const LODGING_TOURISM = "hotel|hostel|guest_house|motel|apartment";
+
+  function ApiError(message) { this.message = message; this.name = "ApiError"; }
+  ApiError.prototype = Object.create(Error.prototype);
+
+  function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+
+  // Turns a raw fetch() rejection into a short, useful hint. A generic
+  // "Failed to fetch" almost always means CORS, an ad/privacy blocker, or
+  // the page being opened as file:// rather than served over http(s).
+  function describeFetchError(e) {
+    const raw = (e && e.message) ? e.message : String(e);
+    if (location.protocol === "file:") {
+      return raw + " (this page is open as a local file:// — some browsers block cross-origin requests from file:// pages; try serving it over http://localhost instead)";
+    }
+    return raw + " (likely blocked by CORS, an ad/privacy blocker, or a network filter)";
+  }
+
+  function haversineMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  async function geocodeDestination(name) {
+    const url = NOMINATIM_URL + "?format=jsonv2&limit=1&accept-language=en&q=" + encodeURIComponent(name);
+    let res;
+    try {
+      res = await fetch(url);
+    } catch (e) {
+      throw new ApiError("Couldn't reach OpenStreetMap (Nominatim) — " + describeFetchError(e) + ".");
+    }
+    if (res.status === 429) throw new ApiError("Nominatim's rate limit was hit. Wait a few seconds and try again.");
+    if (!res.ok) throw new ApiError("Nominatim geocoding returned an error (HTTP " + res.status + ").");
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new ApiError('Couldn\'t find "' + name + '". Try a more specific destination name.');
+    }
+    const top = data[0];
+    return {
+      lat: parseFloat(top.lat),
+      lon: parseFloat(top.lon),
+      name: (top.display_name || name).split(",")[0].trim() || name
+    };
+  }
+
+  function buildOverpassQuery(lat, lon) {
+    const r = SEARCH_RADIUS_M;
+    const clauses = [
+      'node["tourism"~"' + ACTIVITY_TOURISM + '"](around:' + r + ',' + lat + ',' + lon + ');',
+      'way["tourism"~"' + ACTIVITY_TOURISM + '"](around:' + r + ',' + lat + ',' + lon + ');',
+      'node["historic"](around:' + r + ',' + lat + ',' + lon + ');',
+      'way["historic"](around:' + r + ',' + lat + ',' + lon + ');',
+      'node["amenity"~"' + DINING_AMENITY + '"](around:' + r + ',' + lat + ',' + lon + ');',
+      'way["amenity"~"' + DINING_AMENITY + '"](around:' + r + ',' + lat + ',' + lon + ');',
+      'node["tourism"~"' + LODGING_TOURISM + '"](around:' + r + ',' + lat + ',' + lon + ');',
+      'way["tourism"~"' + LODGING_TOURISM + '"](around:' + r + ',' + lat + ',' + lon + ');'
+    ].join("");
+    return "[out:json][timeout:20];(" + clauses + ");out center 220;";
+  }
+
+  function classifyElement(tags) {
+    if (tags.tourism && new RegExp("^(" + LODGING_TOURISM + ")$").test(tags.tourism)) return "lodging";
+    if (tags.amenity && new RegExp("^(" + DINING_AMENITY + ")$").test(tags.amenity)) return "dining";
+    if ((tags.tourism && new RegExp("^(" + ACTIVITY_TOURISM + ")$").test(tags.tourism)) || tags.historic) return "activity";
+    return null;
+  }
+
+  async function fetchNearbyPlaces(lat, lon) {
+    let res;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
+    try {
+      res = await fetch(OVERPASS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: buildOverpassQuery(lat, lon),
+        signal: controller.signal
+      });
+    } catch (e) {
+      if (e.name === "AbortError") {
+        throw new ApiError("OpenStreetMap's Overpass server took too long to respond (it's a shared free service under variable load). Try again in a moment.");
+      }
+      throw new ApiError("Couldn't reach OpenStreetMap's Overpass API — " + describeFetchError(e) + ".");
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if (res.status === 429 || res.status === 504) {
+      throw new ApiError("OpenStreetMap's Overpass server is busy right now (it's a shared free service). Wait a moment and try again.");
+    }
+    if (!res.ok) throw new ApiError("Overpass API returned an error (HTTP " + res.status + ").");
+
+    const data = await res.json();
+    const elements = Array.isArray(data.elements) ? data.elements : [];
+
+    const pools = { activity: [], dining: [], lodging: [] };
+    const seen = { activity: new Set(), dining: new Set(), lodging: new Set() };
+
+    elements.forEach((el) => {
+      const tags = el.tags || {};
+      const name = (tags.name || "").trim();
+      if (!name) return;
+      const category = classifyElement(tags);
+      if (!category) return;
+      const dedupeKey = name.toLowerCase();
+      if (seen[category].has(dedupeKey)) return;
+
+      const coord = el.type === "node" ? { lat: el.lat, lon: el.lon } : el.center;
+      if (!coord) return;
+
+      seen[category].add(dedupeKey);
+      pools[category].push({ name, dist: haversineMeters(lat, lon, coord.lat, coord.lon) });
+    });
+
+    Object.keys(pools).forEach((k) => pools[k].sort((a, b) => a.dist - b.dist));
+    return pools;
+  }
+
+  function distLabel(meters) {
+    if (!meters && meters !== 0) return "";
+    const km = meters / 1000;
+    return km < 1 ? Math.round(meters) + "m from center" : km.toFixed(1) + "km from center";
+  }
+
+  function activityCostForTier(tier) {
+    const ranges = { budget: [0, 15], comfort: [5, 30], luxury: [15, 70] };
+    const [lo, hi] = ranges[tier];
+    return Math.round(lo + Math.random() * (hi - lo));
+  }
+
+  function mealCostForTier(tier, meal) {
+    const table = {
+      budget:  { breakfast: [4, 9],   lunch: [7, 14],  dinner: [10, 18] },
+      comfort: { breakfast: [10, 18], lunch: [16, 28], dinner: [26, 44] },
+      luxury:  { breakfast: [22, 40], lunch: [40, 70], dinner: [60, 140] }
+    };
+    const [lo, hi] = table[tier][meal];
+    return Math.round(lo + Math.random() * (hi - lo));
+  }
+
+  function formatPlace(place, verbPool, idx) {
+    const verb = verbPool[idx % verbPool.length];
+    const dist = distLabel(place.dist);
+    return verb + " " + place.name + (dist ? " (" + dist + ")" : "");
+  }
+
+  function buildRealItinerary(values, geo, activitiesPool, diningPool, stayPool) {
+    const perPersonPerDay = values.budget / values.days / values.travelers;
+    const tier = determineTier(perPersonPerDay);
+    const tierInfo = TIERS[tier];
+    const destination = geo.name || values.destination;
+
+    const activitiesShuf = shuffle(activitiesPool);
+    const diningShuf = shuffle(diningPool);
+
+    let stayName, stayDesc, stayReal;
+    if (stayPool.length > 0) {
+      const top = stayPool[0];
+      stayName = top.name;
+      stayReal = true;
+      const dist = distLabel(top.dist);
+      stayDesc = "A well-rated place to stay near " + destination + (dist ? " (" + dist + ")" : "") + ".";
+    } else {
+      stayName = fill(shuffle(STAY_NAMES[tier])[0], destination);
+      stayDesc = fill(STAY_DESC[tier], destination) + " No verified listings turned up nearby, so this is an estimated placeholder.";
+      stayReal = false;
+    }
+    const nightly = Math.round(
+      tierInfo.nightRange[0] + Math.random() * (tierInfo.nightRange[1] - tierInfo.nightRange[0])
+    );
+
+    const morningFallback = shuffle(MORNING);
+    const afternoonFallback = shuffle(AFTERNOON);
+    const eveningFallback = shuffle(EVENING);
+    const bFallback = shuffle(BREAKFAST[tier]);
+    const lFallback = shuffle(LUNCH[tier]);
+    const dFallback = shuffle(DINNER[tier]);
+
+    let totalCost = 0;
+    const dayList = [];
+
+    for (let i = 0; i < values.days; i++) {
+      const base = i * 3;
+
+      let morningText, afternoonText, eveningText, morningCost, afternoonCost, eveningCost;
+      if (activitiesShuf.length > 0) {
+        morningText = formatPlace(activitiesShuf[base % activitiesShuf.length], ACTIVITY_VERBS, base);
+        afternoonText = formatPlace(activitiesShuf[(base + 1) % activitiesShuf.length], ACTIVITY_VERBS, base + 1);
+        eveningText = formatPlace(activitiesShuf[(base + 2) % activitiesShuf.length], ACTIVITY_VERBS, base + 2);
+        morningCost = activityCostForTier(tier);
+        afternoonCost = activityCostForTier(tier);
+        eveningCost = activityCostForTier(tier);
+      } else {
+        const m = pickCycle(MORNING, i, morningFallback), a = pickCycle(AFTERNOON, i, afternoonFallback), e = pickCycle(EVENING, i, eveningFallback);
+        morningText = fill(m.text, destination); afternoonText = fill(a.text, destination); eveningText = fill(e.text, destination);
+        morningCost = Math.round(m.cost * tierInfo.mult); afternoonCost = Math.round(a.cost * tierInfo.mult); eveningCost = Math.round(e.cost * tierInfo.mult);
+      }
+
+      let breakfastText, lunchText, dinnerText, breakfastCost, lunchCost, dinnerCost;
+      if (diningShuf.length > 0) {
+        breakfastText = formatPlace(diningShuf[base % diningShuf.length], DINE_VERBS, base);
+        lunchText = formatPlace(diningShuf[(base + 1) % diningShuf.length], DINE_VERBS, base + 1);
+        dinnerText = formatPlace(diningShuf[(base + 2) % diningShuf.length], DINE_VERBS, base + 2);
+        breakfastCost = mealCostForTier(tier, "breakfast");
+        lunchCost = mealCostForTier(tier, "lunch");
+        dinnerCost = mealCostForTier(tier, "dinner");
+      } else {
+        const b = pickCycle(BREAKFAST[tier], i, bFallback), l = pickCycle(LUNCH[tier], i, lFallback), d = pickCycle(DINNER[tier], i, dFallback);
+        breakfastText = fill(b[0], destination); lunchText = fill(l[0], destination); dinnerText = fill(d[0], destination);
+        breakfastCost = b[1]; lunchCost = l[1]; dinnerCost = d[1];
+      }
+
+      const activitiesCost = (morningCost + afternoonCost + eveningCost) * values.travelers;
+      const diningCost = (breakfastCost + lunchCost + dinnerCost) * values.travelers;
+      const dayTotal = activitiesCost + diningCost + nightly;
+      totalCost += dayTotal;
+
+      dayList.push({
+        dayNumber: i + 1,
+        activities: { morning: morningText, afternoon: afternoonText, evening: eveningText },
+        activityCosts: { morning: morningCost, afternoon: afternoonCost, evening: eveningCost },
+        dining: { breakfast: breakfastText, lunch: lunchText, dinner: dinnerText },
+        diningCosts: { breakfast: breakfastCost, lunch: lunchCost, dinner: dinnerCost },
+        dayTotal: Math.round(dayTotal)
+      });
+    }
+
+    return {
+      destination,
+      days: values.days,
+      travelers: values.travelers,
+      budget: values.budget,
+      tier,
+      tierLabel: tierInfo.label,
+      stay: { name: stayName, description: stayDesc, nightly, real: stayReal },
+      totalCost: Math.round(totalCost),
+      dayList,
+      source: "real"
+    };
+  }
+
+  async function generateRealItinerary(values) {
+    let geo = null, pools = { activity: [], dining: [], lodging: [] };
+
+    const steps = [
+      { label: "Looking up " + values.destination + " on OpenStreetMap...", task: async () => { geo = await geocodeDestination(values.destination); } },
+      { label: "Finding nearby attractions, dining & stays...", task: async () => { await sleep(200); pools = await fetchNearbyPlaces(geo.lat, geo.lon); } },
+      { label: "Assembling your itinerary...", task: async () => { await sleep(350); } }
+    ];
+
+    genHeading.textContent = "Building your trip to " + values.destination;
+    await runSteps(steps);
+
+    return buildRealItinerary(values, geo, pools.activity, pools.dining, pools.lodging);
+  }
+
+  /* ---------------------------------------------------------
+     Helpers
+  --------------------------------------------------------- */
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function fill(str, destination) {
+    return str.split("{d}").join(destination);
+  }
+
+  function pickCycle(pool, index, shuffledPool) {
+    return shuffledPool[index % shuffledPool.length];
+  }
+
+  function currency(n) {
+    return "$" + Math.round(n).toLocaleString("en-US");
+  }
+
+  function determineTier(perPersonPerDay) {
+    if (perPersonPerDay < 110) return "budget";
+    if (perPersonPerDay < 320) return "comfort";
+    return "luxury";
+  }
+
+  /* ---------------------------------------------------------
+     Simulated "travel API"
+  --------------------------------------------------------- */
+
+  function generateItinerary({ destination, days, travelers, budget }) {
+    const perPersonPerDay = budget / days / travelers;
+    const tier = determineTier(perPersonPerDay);
+    const tierInfo = TIERS[tier];
+
+    const stayName = fill(shuffle(STAY_NAMES[tier])[0], destination);
+    const stayDesc = fill(STAY_DESC[tier], destination);
+    const nightly = Math.round(
+      tierInfo.nightRange[0] + Math.random() * (tierInfo.nightRange[1] - tierInfo.nightRange[0])
+    );
+
+    const morningShuf = shuffle(MORNING);
+    const afternoonShuf = shuffle(AFTERNOON);
+    const eveningShuf = shuffle(EVENING);
+    const bShuf = shuffle(BREAKFAST[tier]);
+    const lShuf = shuffle(LUNCH[tier]);
+    const dShuf = shuffle(DINNER[tier]);
+
+    let totalCost = 0;
+    const dayList = [];
+
+    for (let i = 0; i < days; i++) {
+      const morning = pickCycle(MORNING, i, morningShuf);
+      const afternoon = pickCycle(AFTERNOON, i, afternoonShuf);
+      const evening = pickCycle(EVENING, i, eveningShuf);
+      const breakfast = pickCycle(BREAKFAST[tier], i, bShuf);
+      const lunch = pickCycle(LUNCH[tier], i, lShuf);
+      const dinner = pickCycle(DINNER[tier], i, dShuf);
+
+      const activitiesCost = (morning.cost + afternoon.cost + evening.cost) * tierInfo.mult * travelers;
+      const diningCost = (breakfast[1] + lunch[1] + dinner[1]) * travelers;
+      const dayTotal = activitiesCost + diningCost + nightly;
+      totalCost += dayTotal;
+
+      dayList.push({
+        dayNumber: i + 1,
+        activities: {
+          morning: fill(morning.text, destination),
+          afternoon: fill(afternoon.text, destination),
+          evening: fill(evening.text, destination)
+        },
+        activityCosts: {
+          morning: Math.round(morning.cost * tierInfo.mult),
+          afternoon: Math.round(afternoon.cost * tierInfo.mult),
+          evening: Math.round(evening.cost * tierInfo.mult)
+        },
+        dining: {
+          breakfast: fill(breakfast[0], destination),
+          lunch: fill(lunch[0], destination),
+          dinner: fill(dinner[0], destination)
+        },
+        diningCosts: {
+          breakfast: breakfast[1],
+          lunch: lunch[1],
+          dinner: dinner[1]
+        },
+        dayTotal: Math.round(dayTotal)
+      });
+    }
+
+    return {
+      destination,
+      days,
+      travelers,
+      budget,
+      tier,
+      tierLabel: tierInfo.label,
+      stay: { name: stayName, description: stayDesc, nightly, real: false },
+      totalCost: Math.round(totalCost),
+      dayList,
+      source: "simulated"
+    };
+  }
+
+  /* ---------------------------------------------------------
+     Icons
+  --------------------------------------------------------- */
+
+  const ICONS = {
+    sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+    cloudSun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a5 5 0 0 0-9.8-1.5A4 4 0 0 0 8 24h9a4 4 0 0 0 0-8Z" transform="translate(0 -6)"/><circle cx="7" cy="6" r="3"/></svg>',
+    moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>',
+    fork: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M6 11v11M18 2c-2 0-3 3-3 6s1 3 3 3 3 0 3-3-1-6-3-6ZM18 11v11"/></svg>',
+    bed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18v-6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v6M2 18v3M22 18v3M2 12V6a2 2 0 0 1 2-2h4v6"/></svg>',
+    map: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20 3 17V4l6 3M9 20l6-3M9 20V7M15 17l6 3V7l-6-3M15 17V4M9 7l6-3"/></svg>',
+    wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M18 12a2 2 0 0 0 0 4h3v-4Z"/></svg>',
+    users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+  };
+
+  /* ---------------------------------------------------------
+     DOM refs
+  --------------------------------------------------------- */
+
+  const screens = {
+    form: document.getElementById("screen-form"),
+    generating: document.getElementById("screen-generating"),
+    error: document.getElementById("screen-error"),
+    results: document.getElementById("screen-results")
+  };
+
+  const form = document.getElementById("trip-form");
+  const stepsList = document.getElementById("steps-list");
+  const progressFill = document.getElementById("progress-fill");
+  const genHeading = document.getElementById("gen-heading");
+
+  function showScreen(name) {
+    Object.values(screens).forEach(s => s.classList.remove("active"));
+    screens[name].classList.add("active");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  /* ---------------------------------------------------------
+     Validation
+  --------------------------------------------------------- */
+
+  function setInvalid(fieldId, invalid) {
+    document.getElementById(fieldId).classList.toggle("invalid", invalid);
+  }
+
+  function validate(values) {
+    let ok = true;
+
+    if (!values.destination) { setInvalid("field-destination", true); ok = false; }
+    else setInvalid("field-destination", false);
+
+    if (!values.days || values.days < 1 || values.days > 21) { setInvalid("field-days", true); ok = false; }
+    else setInvalid("field-days", false);
+
+    if (!values.travelers || values.travelers < 1 || values.travelers > 12) { setInvalid("field-travelers", true); ok = false; }
+    else setInvalid("field-travelers", false);
+
+    if (!values.budget || values.budget < 50) { setInvalid("field-budget", true); ok = false; }
+    else setInvalid("field-budget", false);
+
+    return ok;
+  }
+
+  /* ---------------------------------------------------------
+     Generation screen sequencing
+  --------------------------------------------------------- */
+
+  // Runs a sequence of {label, task} steps, animating the checklist/progress
+  // bar as each async task resolves. Used for both the simulated pipeline
+  // (tasks are just timers) and the live OpenStreetMap pipeline (tasks are
+  // real fetches), so the UI behaves identically either way.
+  async function runSteps(stepDefs) {
+    stepsList.innerHTML = "";
+    progressFill.style.width = "0%";
+
+    const stepEls = stepDefs.map((def) => {
+      const el = document.createElement("div");
+      el.className = "step";
+      el.innerHTML =
+        '<span class="dot"><span class="check">' + ICONS.check + '</span></span>' +
+        '<span class="label">' + def.label + '</span>';
+      el.querySelector(".check").style.display = "none";
+      stepsList.appendChild(el);
+      return el;
+    });
+
+    for (let i = 0; i < stepDefs.length; i++) {
+      stepEls[i].classList.add("active");
+      progressFill.style.width = Math.round(((i + 0.5) / stepDefs.length) * 100) + "%";
+
+      const started = Date.now();
+      await stepDefs[i].task();
+      const elapsed = Date.now() - started;
+      if (elapsed < 250) await sleep(250 - elapsed);
+
+      stepEls[i].classList.remove("active");
+      stepEls[i].classList.add("done");
+      stepEls[i].querySelector(".check").style.display = "flex";
+    }
+
+    progressFill.style.width = "100%";
+    await sleep(300);
+  }
+
+  function generateSimulatedItinerary(values) {
+    genHeading.textContent = "Building your trip to " + values.destination;
+    const steps = GEN_STEPS.map((label) => ({
+      label: fill(label, values.destination),
+      task: () => sleep(500 + Math.random() * 400)
+    }));
+    return runSteps(steps).then(() => generateItinerary(values));
+  }
+
+  /* ---------------------------------------------------------
+     Rendering results
+  --------------------------------------------------------- */
+
+  function periodIcon(period) {
+    if (period === "Morning") return ICONS.sun;
+    if (period === "Afternoon") return ICONS.cloudSun;
+    return ICONS.moon;
+  }
+
+  function renderResults(trip) {
+    document.getElementById("res-title").textContent = trip.destination;
+    document.getElementById("res-meta").textContent =
+      trip.days + "-day trip • " + trip.travelers + (trip.travelers === 1 ? " traveler" : " travelers") + " • " + trip.tierLabel + " tier" +
+      (trip.source === "real" ? " • Live places via OpenStreetMap" : " • Simulated data");
+
+    const diff = trip.budget - trip.totalCost;
+    const diffLabel = diff >= 0
+      ? currency(Math.abs(diff)) + " under budget"
+      : currency(Math.abs(diff)) + " over budget";
+    const diffClass = diff >= 0 ? "under" : "over";
+
+    const summaryStrip = document.getElementById("summary-strip");
+    summaryStrip.innerHTML = [
+      statBlock(ICONS.map, "Destination", trip.destination),
+      statBlock(ICONS.calendar, "Duration", trip.days + (trip.days === 1 ? " day" : " days")),
+      statBlock(ICONS.users, "Travelers", String(trip.travelers)),
+      statBlock(ICONS.wallet, "Estimated total", currency(trip.totalCost), diffLabel, diffClass)
+    ].join("");
+
+    const stayCard = document.getElementById("stay-card");
+    stayCard.innerHTML =
+      '<div class="icon">' + ICONS.bed + '</div>' +
+      '<div class="body">' +
+        '<h3>' + trip.stay.name + '</h3>' +
+        '<p>' + trip.stay.description + ' • ' + currency(trip.stay.nightly) + ' / night</p>' +
+      '</div>';
+
+    const daysContainer = document.getElementById("days-container");
+    daysContainer.innerHTML = "";
+
+    trip.dayList.forEach((day) => {
+      const el = document.createElement("div");
+      el.className = "day";
+      el.innerHTML =
+        '<div class="day-header">' +
+          '<div class="day-title">' +
+            '<span class="day-num">DAY ' + day.dayNumber + '</span>' +
+            '<h3>' + trip.destination + '</h3>' +
+          '</div>' +
+          '<div class="day-cost">~' + currency(day.dayTotal) + '</div>' +
+        '</div>' +
+        '<div class="day-body">' +
+          '<div class="section-block">' +
+            '<h4>' + ICONS.map + ' Activities</h4>' +
+            activityItem("Morning", day.activities.morning, day.activityCosts.morning) +
+            activityItem("Afternoon", day.activities.afternoon, day.activityCosts.afternoon) +
+            activityItem("Evening", day.activities.evening, day.activityCosts.evening) +
+          '</div>' +
+          '<div class="section-block">' +
+            '<h4>' + ICONS.fork + ' Dining</h4>' +
+            mealItem("Breakfast", day.dining.breakfast, day.diningCosts.breakfast) +
+            mealItem("Lunch", day.dining.lunch, day.diningCosts.lunch) +
+            mealItem("Dinner", day.dining.dinner, day.diningCosts.dinner) +
+          '</div>' +
+          '<div class="day-stay-line">' + ICONS.bed + ' Staying at ' + trip.stay.name + '</div>' +
+        '</div>';
+      daysContainer.appendChild(el);
+    });
+
+    updateDisclaimer(trip.source);
+  }
+
+  function statBlock(icon, label, value, sub, subClass) {
+    return (
+      '<div class="stat">' +
+        '<div class="label">' + icon + ' ' + label + '</div>' +
+        '<div class="value' + (subClass ? " " + subClass : "") + '">' + value + '</div>' +
+        (sub ? '<div class="label" style="margin-top:4px;text-transform:none;letter-spacing:0;font-size:12px;">' + sub + '</div>' : "") +
+      '</div>'
+    );
+  }
+
+  function activityItem(period, text, cost) {
+    return (
+      '<div class="item">' +
+        '<span class="period">' + period + '</span>' +
+        '<span class="text">' + text + '</span>' +
+        '<span class="cost">' + (cost > 0 ? currency(cost) + "/pp" : "Free") + '</span>' +
+      '</div>'
+    );
+  }
+
+  function mealItem(label, text, cost) {
+    return (
+      '<div class="item">' +
+        '<span class="meal-label">' + label + '</span>' +
+        '<span class="text">' + text + '</span>' +
+        '<span class="cost">' + currency(cost) + '/pp</span>' +
+      '</div>'
+    );
+  }
+
+  function updateDisclaimer(source) {
+    const el = document.getElementById("disclaimer-text");
+    if (source === "real") {
+      el.textContent = "Places, dining, and stays are looked up live from OpenStreetMap (© OpenStreetMap contributors, ODbL) around your destination. If listings run short nearby, a slot may fall back to an estimated placeholder. Prices are still modeled estimates, not live rates — always verify availability, hours, and pricing before booking.";
+    } else {
+      el.textContent = "Wayfarer generated this itinerary using simulated data (OpenStreetMap couldn't be reached) — prices and venue names are illustrative estimates only. Always verify availability and pricing before booking.";
+    }
+  }
+
+  /* ---------------------------------------------------------
+     Wire up form
+  --------------------------------------------------------- */
+
+  let lastValues = null;
+
+  function showError(message) {
+    document.getElementById("error-message").textContent = message;
+    showScreen("error");
+  }
+
+  function readFormValues() {
+    return {
+      destination: document.getElementById("destination").value.trim(),
+      days: parseInt(document.getElementById("days").value, 10),
+      travelers: parseInt(document.getElementById("travelers").value, 10),
+      budget: parseFloat(document.getElementById("budget").value)
+    };
+  }
+
+  async function runGeneration(values, useSimulated) {
+    showScreen("generating");
+    let trip;
+    try {
+      trip = useSimulated ? await generateSimulatedItinerary(values) : await generateRealItinerary(values);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Something unexpected went wrong while building your itinerary.";
+      showError(message);
+      return;
+    }
+    renderResults(trip);
+    showScreen("results");
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const values = readFormValues();
+    if (!validate(values)) return;
+    lastValues = values;
+    runGeneration(values, false);
+  });
+
+  function resetToForm() {
+    showScreen("form");
+  }
+  document.getElementById("btn-start-over").addEventListener("click", resetToForm);
+  document.getElementById("btn-start-over-2").addEventListener("click", resetToForm);
+  document.getElementById("btn-error-back").addEventListener("click", resetToForm);
+  document.getElementById("btn-error-simulate").addEventListener("click", () => {
+    if (lastValues) runGeneration(lastValues, true);
+  });
+
+})();
+</script>
+</body>
+</html>
